@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = "UTF-8">
+		<title>Pulsareqn</title>
+		<script type = "text/javascript">
+			function compute(){
+                // Antenna gain, dB
+                var gain = document.getElementById("_gain").value;
+                
+                // Receiver bandwidth, Hz
+                var bw = document.getElementById("_bw").value;
+
+                // Receiver noise temperature, K
+                var tsys = document.getElementById("_tsys").value;
+
+                // Integration time, seconds
+                var tint = document.getElementById("_tint").value;
+
+                // Pulse period, seconds
+                var p = document.getElementById("_p").value;
+
+                // Pulse width, seconds
+                var w = document.getElementById("_w").value;
+
+                // Compute wavelength
+                var lam = 299792458.0/document.getElementById("_f").value;
+ 
+                // Compute the effective area, given that we know the gain and wavelength
+                var aeff = (lam*lam)/(4*Math.PI);
+
+                // Lineralize the gain (it's in dB on input)
+                var lgain = Math.pow(10.0, gain/10.0);
+
+                // Ok, we know what the Aeff is, in m²
+                aeff *= lgain;
+
+                // Good 'ol Boltzmann's constant, which relates physical temperature
+                // and the number of watts radiated by a strict blackbody at that
+                // physical temperature
+                var boltz = 1.3806e-23;
+
+                // Target "desired" SNR, as a linear ratio
+                // The value given below is what is used, on average, in professional observations
+                var SNR = 6;
+
+                // Now, knowing all the input parameters, we can calculate the 'smin', which is the
+                // minimum detectable "flux" in watts/m²/Hz
+                var smin = (2*boltz)*SNR*tsys;
+
+                // smin is "enhanced" (driven lower) by larger antennae, and more integration time and bandwidth
+                smin /= aeff*Math.sqrt(1*tint*bw);
+
+                // smin is "dehanced" (driven higher) by a smaller duty cycle
+                smin *= Math.sqrt(w/(p-w));
+
+                // This is an arbitrary "fudge factor" which could also be input
+                // For a theoretically-perfect instrument, beta would be 1.0
+                // For somewhat-less-than-perfect, Beta climbs appropriately
+                var beta = 1.72;
+                smin *= beta;
+                
+                // Scale into Jansky
+                var Jy = 1.0e-26;
+                smin /= Jy;
+
+                _output.style = "block";
+                _output.value = (isNaN(aeff+smin) || aeff+smin == Infinity) ?
+                                "Error: Check inputs!" :
+                                "Aeff = " + aeff.toFixed(2) + "m², smin = " + smin.toFixed(3) + "Jy";                
+            }
+		</script>
+		<link rel = "stylesheet" type = "text/css" href = "plsareqn.css" />
+	</head>
+	<body>
+        <div class="form-style">
+        <h2>Pulsareqn</h2>
+        <form id="form">
+            <input type = "text" id = "_gain"   placeholder = "Gain, dB" />
+            <input type = "text" id = "_bw"     placeholder = "Receiver bandwidth, Hz" />
+            <input type = "text" id = "_f"      placeholder = "Frequency, Hz" />
+            <input type = "text" id = "_tsys"   placeholder = "Receiver noise temperature, K" />
+            <input type = "text" id = "_tint"   placeholder = "Integration time, seconds" />
+            <input type = "text" id = "_p"      placeholder = "Pulse period, seconds" />
+            <input type = "text" id = "_w"      placeholder = "Pulse width, seconds" />
+
+            <input type = "button" value = "Compute" onclick = "compute()"/>
+            <input type = "button" value = "Clear" onclick = "this.form.reset();
+                                                            _output.style = 'display:none';
+                                                            document.getElementById('_gain').focus();"/>
+            <input type = "text" id = "_output" style="display:none"/>
+        </form>
+        </div>
+	</body>
+</html>
+
+
